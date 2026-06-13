@@ -1,13 +1,13 @@
 'use client';
 
-export default function StatsBar({ total, done, dsa, da, daysPassed }) {
+export default function StatsBar({ total, done, dsa, da, ml, backend, core, daysPassed }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const dayPct = Math.round((Math.min(daysPassed, 45) / 45) * 100);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {/* Overall Progress */}
-      <div className="col-span-2 sm:col-span-4 bg-[#161b22] border border-[#21262d] rounded-lg p-4">
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      {/* Overall Progress — full width */}
+      <div className="col-span-2 sm:col-span-5 bg-[#161b22] border border-[#21262d] rounded-lg p-4">
         <div className="flex justify-between text-xs text-[#8b949e] mb-2">
           <span>Overall completion</span>
           <span className="text-[#e6edf3]">{done}/{total} topics &nbsp;·&nbsp; {pct}%</span>
@@ -30,10 +30,14 @@ export default function StatsBar({ total, done, dsa, da, daysPassed }) {
         </div>
       </div>
 
-      <StatCard label="DSA Topics" value={dsa} color="text-[#f78166]" />
-      <StatCard label="Data Analyst" value={da} color="text-[#d2a8ff]" />
-      <StatCard label="Completed" value={done} color="text-[#3fb950]" />
-      <StatCard label="Remaining" value={total - done} color="text-[#e3b341]" />
+      <StatCard label="DSA"        value={dsa}        color="text-[#f78166]" />
+      <StatCard label="Data Analyst" value={da}        color="text-[#d2a8ff]" />
+      <StatCard label="ML"         value={ml}         color="text-[#79c0ff]" />
+      <StatCard label="Backend"    value={backend}    color="text-[#56d364]" />
+      <StatCard label="Core"       value={core}       color="text-[#e3b341]" />
+
+      <StatCard label="Completed"  value={done}       color="text-[#3fb950]" />
+      <StatCard label="Remaining"  value={total-done} color="text-[#e3b341]" />
     </div>
   );
 }

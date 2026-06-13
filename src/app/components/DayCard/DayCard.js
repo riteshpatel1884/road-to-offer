@@ -2,10 +2,15 @@
 
 import { useState } from 'react';
 
-const TAG_CONFIG = {
-  dsa: { label: 'DSA', color: 'bg-[#f781661a] text-[#f78166] border-[#f7816633]' },
-  da: { label: 'DA', color: 'bg-[#d2a8ff1a] text-[#d2a8ff] border-[#d2a8ff33]' },
+export const TAG_CONFIG = {
+  dsa:     { label: 'DSA',     color: 'bg-[#f781661a] text-[#f78166] border-[#f7816633]' },
+  da:      { label: 'DA',      color: 'bg-[#d2a8ff1a] text-[#d2a8ff] border-[#d2a8ff33]' },
+  ml:      { label: 'ML',      color: 'bg-[#79c0ff1a] text-[#79c0ff] border-[#79c0ff33]' },
+  backend: { label: 'Backend', color: 'bg-[#56d3641a] text-[#56d364] border-[#56d36433]' },
+  core:    { label: 'Core',    color: 'bg-[#e3b3411a] text-[#e3b341] border-[#e3b34133]' },
 };
+
+const TAG_ORDER = ['dsa', 'da', 'ml', 'backend', 'core'];
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -14,6 +19,14 @@ function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
+
+const TAG_DOT_COLORS = {
+  dsa:     'bg-[#f78166]',
+  da:      'bg-[#d2a8ff]',
+  ml:      'bg-[#79c0ff]',
+  backend: 'bg-[#56d364]',
+  core:    'bg-[#e3b341]',
+};
 
 export default function DayCard({
   day,
@@ -38,7 +51,7 @@ export default function DayCard({
   const handleAdd = () => {
     const trimmed = newTopic.trim();
     if (!trimmed) return;
-    onAddTopic(day.id, trimmed);
+    onAddTopic(day.id, trimmed, newTag);
     setNewTopic('');
   };
 
@@ -47,7 +60,15 @@ export default function DayCard({
     setEditingNote(false);
   };
 
+  const cycleTag = (currentTag) => {
+    const idx = TAG_ORDER.indexOf(currentTag);
+    return TAG_ORDER[(idx + 1) % TAG_ORDER.length];
+  };
+
   const isPast = new Date(day.date + 'T00:00:00') < new Date(new Date().toDateString());
+
+  // Unique tags present in this day's topics
+  const presentTags = TAG_ORDER.filter(tag => day.topics.some(t => t.tag === tag));
 
   return (
     <div
@@ -85,21 +106,18 @@ export default function DayCard({
           {isToday && <span className="ml-2 text-[10px] uppercase tracking-widest text-[#58a6ff]">today</span>}
         </span>
 
-        {/* Topic mini-pills */}
+        {/* Done count */}
         {totalTopics > 0 && (
           <span className="text-xs text-[#8b949e] hidden sm:inline">
             {doneTopics}/{totalTopics}
           </span>
         )}
 
-        {/* Tag dots */}
+        {/* Tag dots — one per unique tag present */}
         <div className="flex gap-1">
-          {day.topics.some(t => t.tag === 'dsa') && (
-            <span className="w-1.5 h-1.5 rounded-full bg-[#f78166]" />
-          )}
-          {day.topics.some(t => t.tag === 'da') && (
-            <span className="w-1.5 h-1.5 rounded-full bg-[#d2a8ff]" />
-          )}
+          {presentTags.map(tag => (
+            <span key={tag} className={`w-1.5 h-1.5 rounded-full ${TAG_DOT_COLORS[tag]}`} />
+          ))}
         </div>
 
         {/* Progress mini bar */}
@@ -154,13 +172,11 @@ export default function DayCard({
                   {topic.text}
                 </span>
 
-                {/* Tag switcher */}
+                {/* Tag cycler */}
                 <button
-                  onClick={() =>
-                    onUpdateTag(day.id, topic.id, topic.tag === 'dsa' ? 'da' : 'dsa')
-                  }
+                  onClick={() => onUpdateTag(day.id, topic.id, cycleTag(topic.tag))}
                   className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${TAG_CONFIG[topic.tag].color}`}
-                  title="Click to switch tag"
+                  title="Click to cycle tag"
                 >
                   {TAG_CONFIG[topic.tag].label}
                 </button>
@@ -183,8 +199,9 @@ export default function DayCard({
               onChange={e => setNewTag(e.target.value)}
               className="bg-[#161b22] border border-[#21262d] rounded px-2 text-xs text-[#8b949e] focus:outline-none focus:border-[#58a6ff] shrink-0"
             >
-              <option value="dsa">DSA</option>
-              <option value="da">DA</option>
+              {TAG_ORDER.map(tag => (
+                <option key={tag} value={tag}>{TAG_CONFIG[tag].label}</option>
+              ))}
             </select>
             <input
               type="text"

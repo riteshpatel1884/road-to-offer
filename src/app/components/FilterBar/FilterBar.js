@@ -1,11 +1,9 @@
 'use client';
 
 const FILTERS = [
-  { id: 'all', label: 'All Days' },
-  { id: 'dsa', label: 'DSA' },
-  { id: 'da', label: 'Data Analyst' },
+  { id: 'all',     label: 'All Days' },
   { id: 'pending', label: 'Pending' },
-  { id: 'done', label: 'Done' },
+  { id: 'done',    label: 'Done' },
 ];
 
 export default function FilterBar({ filter, setFilter, search, setSearch }) {
