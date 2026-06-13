@@ -92,7 +92,7 @@ Please provide a concise, motivating AI insight in exactly this JSON structure (
   "pace_analysis": "Are they on track to finish all topics before Day 45? At current pace, what happens? 1-2 sentences.",
   "tag_imbalance": "Which tag/role is being neglected vs overdone? Specific advice. 1-2 sentences.",
   "action_for_today": "One specific, actionable thing they should do TODAY based on the data. Be direct.",
-  "motivational_close": "One final punchy motivational line tailored to their situation."
+  "motivational_close": "One final punchy motivational line tailored to their situation"
 }`;
 
     async function fetchInsight() {
