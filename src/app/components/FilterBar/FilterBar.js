@@ -24,13 +24,7 @@ export default function FilterBar({ filter, setFilter, search, setSearch }) {
           </button>
         ))}
       </div>
-      <input
-        type="text"
-        placeholder="Search topics..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="flex-1 bg-[#161b22] border border-[#21262d] rounded px-3 py-1.5 text-xs text-[#e6edf3] placeholder-[#484f58] focus:outline-none focus:border-[#58a6ff] transition-colors"
-      />
+     
     </div>
   );
 }
