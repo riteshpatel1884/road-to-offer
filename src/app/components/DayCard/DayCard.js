@@ -4,9 +4,9 @@ import { useState } from 'react';
 
 export const TAG_CONFIG = {
   dsa:     { label: 'DSA',     color: 'bg-[#f781661a] text-[#f78166] border-[#f7816633]' },
-  da:      { label: 'DA',      color: 'bg-[#d2a8ff1a] text-[#d2a8ff] border-[#d2a8ff33]' },
+  da:      { label: 'Data Analyst',      color: 'bg-[#d2a8ff1a] text-[#d2a8ff] border-[#d2a8ff33]' },
   ml:      { label: 'ML',      color: 'bg-[#79c0ff1a] text-[#79c0ff] border-[#79c0ff33]' },
-  backend: { label: 'Backend', color: 'bg-[#56d3641a] text-[#56d364] border-[#56d36433]' },
+  backend: { label: 'Backend Web', color: 'bg-[#56d3641a] text-[#56d364] border-[#56d36433]' },
   core:    { label: 'Core',    color: 'bg-[#e3b3411a] text-[#e3b341] border-[#e3b34133]' },
 };
 
