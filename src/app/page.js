@@ -331,7 +331,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto flex items-start justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-[#58a6ff]">
-              placement.prep
+             Road to Offer
             </h1>
             <p className="text-xs text-[#8b949e] mt-0.5">
               14 Jun → 28 Jul 2026 &nbsp;·&nbsp; 45 days &nbsp;·&nbsp; Day {Math.min(daysPassed + 1, 45)} of 45
