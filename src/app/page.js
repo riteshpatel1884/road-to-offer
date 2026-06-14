@@ -23,7 +23,7 @@ function generateDays() {
 
 // ─── AI Insight Panel ────────────────────────────────────────────────────────
 
-function AIInsightPanel({ days, totalTopics, doneTopics, dsaTopics, daTopics, mlTopics, backendTopics, coreTopics, daysPassed }) {
+function AIInsightPanel({ days, totalTopics, doneTopics, dsaTopics, daTopics, mlTopics, backendTopics, coreTopics, aptitudeTopics, daysPassed }) {
   const [insight, setInsight] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -48,7 +48,7 @@ function AIInsightPanel({ days, totalTopics, doneTopics, dsaTopics, daTopics, ml
     }).length;
 
     // Determine most neglected tag
-    const tagCounts = { dsa: dsaTopics, da: daTopics, ml: mlTopics, backend: backendTopics, core: coreTopics };
+    const tagCounts = { dsa: dsaTopics, da: daTopics, ml: mlTopics, backend: backendTopics, core: coreTopics, aptitude: aptitudeTopics };
     const mostNeglected = Object.entries(tagCounts).sort((a, b) => a[1] - b[1])[0][0].toUpperCase();
 
     const prompt = `You are an AI coach for a 45-day placement prep tracker. Analyze this data and give a focused, honest review.
@@ -58,7 +58,7 @@ DATA:
 - Topics: ${totalTopics} logged, ${doneTopics} done (${completionRate}%), ${pendingTopics} pending
 - Today: ${todayDone}/${todayTopics.length} done
 - Missed past days (no topics): ${missedDays}
-- Tag counts — DSA: ${dsaTopics}, DA: ${daTopics}, ML: ${mlTopics}, Backend: ${backendTopics}, Core: ${coreTopics}
+- Tag counts — DSA: ${dsaTopics}, DA: ${daTopics}, ML: ${mlTopics}, Backend: ${backendTopics}, Core: ${coreTopics}, Aptitude: ${aptitudeTopics}
 - Most neglected tag: ${mostNeglected}
 
 Respond ONLY with raw JSON (no markdown, no preamble):
@@ -116,7 +116,7 @@ Respond ONLY with raw JSON (no markdown, no preamble):
           <span className="text-[10px] text-[#484f58]">· analyzing...</span>
         </div>
         <div className="h-3 bg-[#21262d] rounded w-1/2 mb-4" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="space-y-1.5">
               <div className="h-2 bg-[#21262d] rounded w-1/3" />
@@ -159,7 +159,7 @@ Respond ONLY with raw JSON (no markdown, no preamble):
       </div>
 
       {/* 4 insight blocks — always shown */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-[#21262d]">
+      <div className="grid grid-cols-1 gap-px bg-[#21262d]">
         <InsightBlock
           icon="📊"
           label="Progress"
@@ -285,13 +285,14 @@ export default function Home() {
   };
 
   // Stats
-  const totalTopics   = days.reduce((a, d) => a + d.topics.length, 0);
-  const doneTopics    = days.reduce((a, d) => a + d.topics.filter(t => t.done).length, 0);
-  const dsaTopics     = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'dsa').length, 0);
-  const daTopics      = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'da').length, 0);
-  const mlTopics      = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'ml').length, 0);
-  const backendTopics = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'backend').length, 0);
-  const coreTopics    = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'core').length, 0);
+  const totalTopics    = days.reduce((a, d) => a + d.topics.length, 0);
+  const doneTopics     = days.reduce((a, d) => a + d.topics.filter(t => t.done).length, 0);
+  const dsaTopics      = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'dsa').length, 0);
+  const daTopics       = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'da').length, 0);
+  const mlTopics       = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'ml').length, 0);
+  const backendTopics  = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'backend').length, 0);
+  const coreTopics     = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'core').length, 0);
+  const aptitudeTopics = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'aptitude').length, 0);
 
   const today = new Date().toISOString().split('T')[0];
   const daysPassed = days.filter(d => d.date < today).length;
@@ -303,29 +304,31 @@ export default function Home() {
 
     if (!matchSearch) return false;
 
-    if (filter === 'dsa')     return d.topics.some(t => t.tag === 'dsa');
-    if (filter === 'da')      return d.topics.some(t => t.tag === 'da');
-    if (filter === 'ml')      return d.topics.some(t => t.tag === 'ml');
-    if (filter === 'backend') return d.topics.some(t => t.tag === 'backend');
-    if (filter === 'core')    return d.topics.some(t => t.tag === 'core');
-    if (filter === 'pending') return d.topics.some(t => !t.done);
-    if (filter === 'done')    return d.topics.length > 0 && d.topics.every(t => t.done);
+    if (filter === 'dsa')      return d.topics.some(t => t.tag === 'dsa');
+    if (filter === 'da')       return d.topics.some(t => t.tag === 'da');
+    if (filter === 'ml')       return d.topics.some(t => t.tag === 'ml');
+    if (filter === 'backend')  return d.topics.some(t => t.tag === 'backend');
+    if (filter === 'core')     return d.topics.some(t => t.tag === 'core');
+    if (filter === 'aptitude') return d.topics.some(t => t.tag === 'aptitude');
+    if (filter === 'pending')  return d.topics.some(t => !t.done);
+    if (filter === 'done')     return d.topics.length > 0 && d.topics.every(t => t.done);
     return true;
   });
 
   const LEGEND = [
-    { label: 'DSA',     color: '#f78166' },
-    { label: 'DA',      color: '#d2a8ff' },
-    { label: 'ML',      color: '#79c0ff' },
-    { label: 'Backend', color: '#56d364' },
-    { label: 'Core',    color: '#e3b341' },
+    { label: 'DSA',      color: '#f78166' },
+    { label: 'DA',       color: '#d2a8ff' },
+    { label: 'ML',       color: '#79c0ff' },
+    { label: 'Backend',  color: '#56d364' },
+    { label: 'Core',     color: '#e3b341' },
+    { label: 'Aptitude', color: '#ff7b72' },
   ];
 
   return (
     <main className="min-h-screen bg-[#0d1117] text-[#e6edf3] font-mono">
       {/* Header */}
       <div className="border-b border-[#21262d] px-4 py-4 sm:px-8">
-        <div className="max-w-4xl mx-auto flex items-start justify-between flex-wrap gap-3">
+        <div className="max-w-6xl mx-auto flex items-start justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-[#58a6ff]">
               placement.prep
@@ -348,56 +351,67 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 space-y-5">
-        <StatsBar
-          total={totalTopics}
-          done={doneTopics}
-          dsa={dsaTopics}
-          da={daTopics}
-          ml={mlTopics}
-          backend={backendTopics}
-          core={coreTopics}
-          daysPassed={daysPassed}
-        />
-
-        {/* AI Coach Panel */}
-        <AIInsightPanel
-          days={days}
-          totalTopics={totalTopics}
-          doneTopics={doneTopics}
-          dsaTopics={dsaTopics}
-          daTopics={daTopics}
-          mlTopics={mlTopics}
-          backendTopics={backendTopics}
-          coreTopics={coreTopics}
-          daysPassed={daysPassed}
-        />
-
-        <FilterBar
-          filter={filter}
-          setFilter={setFilter}
-          search={search}
-          setSearch={setSearch}
-        />
-
-        <div className="space-y-2">
-          {filteredDays.map(day => (
-            <DayCard
-              key={day.id}
-              day={day}
-              isToday={day.date === today}
-              expanded={expandedDay === day.id}
-              onToggleExpand={() =>
-                setExpandedDay(expandedDay === day.id ? null : day.id)
-              }
-              onAddTopic={addTopic}
-              onToggleTopic={toggleTopic}
-              onDeleteTopic={deleteTopic}
-              onEditTopic={editTopic}
-              onUpdateTag={updateTopicTag}
-              onAddNote={addNote}
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6">
+        <div className="flex flex-col lg:flex-row gap-5">
+          {/* Left column — 70% */}
+          <div className="w-full lg:w-[70%] space-y-5">
+            <StatsBar
+              total={totalTopics}
+              done={doneTopics}
+              dsa={dsaTopics}
+              da={daTopics}
+              ml={mlTopics}
+              backend={backendTopics}
+              core={coreTopics}
+              aptitude={aptitudeTopics}
+              daysPassed={daysPassed}
             />
-          ))}
+
+            <FilterBar
+              filter={filter}
+              setFilter={setFilter}
+              search={search}
+              setSearch={setSearch}
+            />
+
+            <div className="space-y-2">
+              {filteredDays.map(day => (
+                <DayCard
+                  key={day.id}
+                  day={day}
+                  isToday={day.date === today}
+                  expanded={expandedDay === day.id}
+                  onToggleExpand={() =>
+                    setExpandedDay(expandedDay === day.id ? null : day.id)
+                  }
+                  onAddTopic={addTopic}
+                  onToggleTopic={toggleTopic}
+                  onDeleteTopic={deleteTopic}
+                  onEditTopic={editTopic}
+                  onUpdateTag={updateTopicTag}
+                  onAddNote={addNote}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Right column — 30%, AI Coach */}
+          <div className="w-full lg:w-[30%]">
+            <div className="lg:sticky lg:top-6">
+              <AIInsightPanel
+                days={days}
+                totalTopics={totalTopics}
+                doneTopics={doneTopics}
+                dsaTopics={dsaTopics}
+                daTopics={daTopics}
+                mlTopics={mlTopics}
+                backendTopics={backendTopics}
+                coreTopics={coreTopics}
+                aptitudeTopics={aptitudeTopics}
+                daysPassed={daysPassed}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </main>

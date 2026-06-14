@@ -1,6 +1,6 @@
 'use client';
 
-export default function StatsBar({ total, done, dsa, da, ml, backend, core, daysPassed }) {
+export default function StatsBar({ total, done, dsa, da, ml, backend, core, aptitude, daysPassed }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const dayPct = Math.round((Math.min(daysPassed, 45) / 45) * 100);
 
@@ -30,11 +30,12 @@ export default function StatsBar({ total, done, dsa, da, ml, backend, core, days
         </div>
       </div>
 
-      <StatCard label="DSA"        value={dsa}        color="text-[#f78166]" />
-      <StatCard label="Data Analyst" value={da}        color="text-[#d2a8ff]" />
-      <StatCard label="ML"         value={ml}         color="text-[#79c0ff]" />
-      <StatCard label="Backend"    value={backend}    color="text-[#56d364]" />
-      <StatCard label="Core"       value={core}       color="text-[#e3b341]" />
+      <StatCard label="DSA"          value={dsa}        color="text-[#f78166]" />
+      <StatCard label="Data Analyst" value={da}         color="text-[#d2a8ff]" />
+      <StatCard label="ML"           value={ml}         color="text-[#79c0ff]" />
+      <StatCard label="Backend"      value={backend}    color="text-[#56d364]" />
+      <StatCard label="Core"         value={core}       color="text-[#e3b341]" />
+      <StatCard label="Aptitude"     value={aptitude}   color="text-[#ff7b72]" />
 
       <StatCard label="Completed"  value={done}       color="text-[#3fb950]" />
       <StatCard label="Remaining"  value={total-done} color="text-[#e3b341]" />

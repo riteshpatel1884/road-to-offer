@@ -24,7 +24,6 @@ export default function FilterBar({ filter, setFilter, search, setSearch }) {
           </button>
         ))}
       </div>
-     
     </div>
   );
 }
