@@ -258,6 +258,16 @@ export default function Home() {
     );
   };
 
+  const editTopic = (dayId, topicId, newText) => {
+    setDays(prev =>
+      prev.map(d =>
+        d.id === dayId
+          ? { ...d, topics: d.topics.map(t => t.id === topicId ? { ...t, text: newText } : t) }
+          : d
+      )
+    );
+  };
+
   const updateTopicTag = (dayId, topicId, tag) => {
     setDays(prev =>
       prev.map(d =>
@@ -383,6 +393,7 @@ export default function Home() {
               onAddTopic={addTopic}
               onToggleTopic={toggleTopic}
               onDeleteTopic={deleteTopic}
+              onEditTopic={editTopic}
               onUpdateTag={updateTopicTag}
               onAddNote={addNote}
             />

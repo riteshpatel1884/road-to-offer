@@ -36,6 +36,7 @@ export default function DayCard({
   onAddTopic,
   onToggleTopic,
   onDeleteTopic,
+  onEditTopic,
   onUpdateTag,
   onAddNote,
 }) {
@@ -43,6 +44,8 @@ export default function DayCard({
   const [newTag, setNewTag] = useState('dsa');
   const [editingNote, setEditingNote] = useState(false);
   const [noteText, setNoteText] = useState(day.note || '');
+  const [editingTopicId, setEditingTopicId] = useState(null);
+  const [editTopicText, setEditTopicText] = useState('');
 
   const totalTopics = day.topics.length;
   const doneTopics = day.topics.filter(t => t.done).length;
@@ -63,6 +66,25 @@ export default function DayCard({
   const cycleTag = (currentTag) => {
     const idx = TAG_ORDER.indexOf(currentTag);
     return TAG_ORDER[(idx + 1) % TAG_ORDER.length];
+  };
+
+  const startEditTopic = (topic) => {
+    setEditingTopicId(topic.id);
+    setEditTopicText(topic.text);
+  };
+
+  const saveEditTopic = (topicId) => {
+    const trimmed = editTopicText.trim();
+    if (trimmed) {
+      onEditTopic(day.id, topicId, trimmed);
+    }
+    setEditingTopicId(null);
+    setEditTopicText('');
+  };
+
+  const cancelEditTopic = () => {
+    setEditingTopicId(null);
+    setEditTopicText('');
   };
 
   const isPast = new Date(day.date + 'T00:00:00') < new Date(new Date().toDateString());
@@ -163,14 +185,41 @@ export default function DayCard({
                   {topic.done && <span className="text-white text-[10px]">✓</span>}
                 </button>
 
-                {/* Text */}
-                <span
-                  className={`flex-1 text-sm transition-colors ${
-                    topic.done ? 'line-through text-[#484f58]' : 'text-[#e6edf3]'
-                  }`}
-                >
-                  {topic.text}
-                </span>
+                {/* Text / Edit input */}
+                {editingTopicId === topic.id ? (
+                  <input
+                    type="text"
+                    autoFocus
+                    value={editTopicText}
+                    onChange={e => setEditTopicText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') saveEditTopic(topic.id);
+                      if (e.key === 'Escape') cancelEditTopic();
+                    }}
+                    onBlur={() => saveEditTopic(topic.id)}
+                    className="flex-1 bg-[#0d1117] border border-[#58a6ff] rounded px-2 py-0.5 text-sm text-[#e6edf3] focus:outline-none"
+                  />
+                ) : (
+                  <span
+                    onDoubleClick={() => startEditTopic(topic)}
+                    className={`flex-1 text-sm transition-colors cursor-text ${
+                      topic.done ? 'line-through text-[#484f58]' : 'text-[#e6edf3]'
+                    }`}
+                  >
+                    {topic.text}
+                  </span>
+                )}
+
+                {/* Edit button */}
+                {editingTopicId !== topic.id && (
+                  <button
+                    onClick={() => startEditTopic(topic)}
+                    className="text-[#484f58] hover:text-[#58a6ff] text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Edit topic"
+                  >
+                    ✎
+                  </button>
+                )}
 
                 {/* Tag cycler */}
                 <button
