@@ -353,47 +353,48 @@ export default function Home() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6">
-        <div className="flex flex-col lg:flex-row gap-5">
+        {/* Stats bar — full width on top */}
+        <StatsBar
+          total={totalTopics}
+          done={doneTopics}
+          dsa={dsaTopics}
+          da={daTopics}
+          ml={mlTopics}
+          backend={backendTopics}
+          core={coreTopics}
+          aptitude={aptitudeTopics}
+          daysPassed={daysPassed}
+        />
+
+        <div className="mt-5">
+          <FilterBar
+            filter={filter}
+            setFilter={setFilter}
+            search={search}
+            setSearch={setSearch}
+          />
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-5 mt-5">
           {/* Left column — 70% */}
-          <div className="w-full lg:w-[70%] space-y-5">
-            <StatsBar
-              total={totalTopics}
-              done={doneTopics}
-              dsa={dsaTopics}
-              da={daTopics}
-              ml={mlTopics}
-              backend={backendTopics}
-              core={coreTopics}
-              aptitude={aptitudeTopics}
-              daysPassed={daysPassed}
-            />
-
-            <FilterBar
-              filter={filter}
-              setFilter={setFilter}
-              search={search}
-              setSearch={setSearch}
-            />
-
-            <div className="space-y-2">
-              {filteredDays.map(day => (
-                <DayCard
-                  key={day.id}
-                  day={day}
-                  isToday={day.date === today}
-                  expanded={expandedDay === day.id}
-                  onToggleExpand={() =>
-                    setExpandedDay(expandedDay === day.id ? null : day.id)
-                  }
-                  onAddTopic={addTopic}
-                  onToggleTopic={toggleTopic}
-                  onDeleteTopic={deleteTopic}
-                  onEditTopic={editTopic}
-                  onUpdateTag={updateTopicTag}
-                  onAddNote={addNote}
-                />
-              ))}
-            </div>
+          <div className="w-full lg:w-[70%] space-y-2">
+            {filteredDays.map(day => (
+              <DayCard
+                key={day.id}
+                day={day}
+                isToday={day.date === today}
+                expanded={expandedDay === day.id}
+                onToggleExpand={() =>
+                  setExpandedDay(expandedDay === day.id ? null : day.id)
+                }
+                onAddTopic={addTopic}
+                onToggleTopic={toggleTopic}
+                onDeleteTopic={deleteTopic}
+                onEditTopic={editTopic}
+                onUpdateTag={updateTopicTag}
+                onAddNote={addNote}
+              />
+            ))}
           </div>
 
           {/* Right column — 30%, AI Coach */}

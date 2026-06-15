@@ -5,9 +5,9 @@ export default function StatsBar({ total, done, dsa, da, ml, backend, core, apti
   const dayPct = Math.round((Math.min(daysPassed, 45) / 45) * 100);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
       {/* Overall Progress — full width */}
-      <div className="col-span-2 sm:col-span-4 lg:col-span-8 bg-[#161b22] border border-[#21262d] rounded-lg p-4">
+      <div className="col-span-2 sm:col-span-5 bg-[#161b22] border border-[#21262d] rounded-lg p-4">
         <div className="flex justify-between text-xs text-[#8b949e] mb-2">
           <span>Overall completion</span>
           <span className="text-[#e6edf3]">{done}/{total} topics &nbsp;·&nbsp; {pct}%</span>
@@ -36,8 +36,9 @@ export default function StatsBar({ total, done, dsa, da, ml, backend, core, apti
       <StatCard label="Backend"      value={backend}    color="text-[#56d364]" />
       <StatCard label="Core"         value={core}       color="text-[#e3b341]" />
       <StatCard label="Aptitude"     value={aptitude}   color="text-[#ff7b72]" />
-      <StatCard label="Completed"    value={done}       color="text-[#3fb950]" />
-      <StatCard label="Remaining"    value={total-done} color="text-[#e3b341]" />
+
+      <StatCard label="Completed"  value={done}       color="text-[#3fb950]" />
+      <StatCard label="Remaining"  value={total-done} color="text-[#e3b341]" />
     </div>
   );
 }
