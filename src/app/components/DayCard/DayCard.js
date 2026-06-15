@@ -205,7 +205,7 @@ export default function DayCard({
                   <span
                     onDoubleClick={() => startEditTopic(topic)}
                     className={`flex-1 text-sm transition-colors cursor-text ${
-                      topic.done ? 'line-through text-[#484f58]' : 'text-[#e6edf3]'
+                      topic.done ? 'text-[#8b949e]' : 'text-[#e6edf3]'
                     }`}
                   >
                     {topic.text}

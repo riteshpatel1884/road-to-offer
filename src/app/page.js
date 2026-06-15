@@ -311,6 +311,7 @@ export default function Home() {
     if (filter === 'core')     return d.topics.some(t => t.tag === 'core');
     if (filter === 'aptitude') return d.topics.some(t => t.tag === 'aptitude');
     if (filter === 'pending')  return d.topics.some(t => !t.done);
+      if (filter === 'today')    return d.date === today;
     if (filter === 'done')     return d.topics.length > 0 && d.topics.every(t => t.done);
     return true;
   });
