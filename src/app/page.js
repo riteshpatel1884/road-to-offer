@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import DayCard from './components/DayCard/DayCard';
 import StatsBar from './components/StatsBar/StatsBar';
 import FilterBar from './components/FilterBar/FilterBar';
 
 const START_DATE = new Date('2026-06-14');
 const TOTAL_DAYS = 45;
-const GROQ_API_KEY = process.env.NEXT_PUBLIC_GROQ_API_KEY;
 
 function generateDays() {
   return Array.from({ length: TOTAL_DAYS }, (_, i) => {
@@ -19,185 +18,6 @@ function generateDays() {
       topics: [],
     };
   });
-}
-
-// ─── AI Insight Panel ────────────────────────────────────────────────────────
-
-function AIInsightPanel({ days, totalTopics, doneTopics, dsaTopics, daTopics, mlTopics, backendTopics, coreTopics, aptitudeTopics, daysPassed }) {
-  const [insight, setInsight] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const hasFetched = useRef(false);
-
-  useEffect(() => {
-    if (hasFetched.current || days.length === 0) return;
-    hasFetched.current = true;
-
-    const today = new Date().toISOString().split('T')[0];
-    const todayDay = days.find(d => d.date === today);
-    const todayTopics = todayDay ? todayDay.topics : [];
-    const todayDone = todayTopics.filter(t => t.done).length;
-
-    const daysRemaining = TOTAL_DAYS - daysPassed;
-    const pendingTopics = totalTopics - doneTopics;
-    const completionRate = totalTopics > 0 ? Math.round((doneTopics / totalTopics) * 100) : 0;
-
-    const missedDays = days.filter(d => {
-      const isPast = new Date(d.date + 'T00:00:00') < new Date(new Date().toDateString());
-      return isPast && d.topics.length === 0;
-    }).length;
-
-    // Determine most neglected tag
-    const tagCounts = { dsa: dsaTopics, da: daTopics, ml: mlTopics, backend: backendTopics, core: coreTopics, aptitude: aptitudeTopics };
-    const mostNeglected = Object.entries(tagCounts).sort((a, b) => a[1] - b[1])[0][0].toUpperCase();
-
-    const prompt = `You are an AI coach for a 45-day placement prep tracker. Analyze this data and give a focused, honest review.
-
-DATA:
-- Days elapsed: ${daysPassed} / 45 | Days remaining: ${daysRemaining}
-- Topics: ${totalTopics} logged, ${doneTopics} done (${completionRate}%), ${pendingTopics} pending
-- Today: ${todayDone}/${todayTopics.length} done
-- Missed past days (no topics): ${missedDays}
-- Tag counts — DSA: ${dsaTopics}, DA: ${daTopics}, ML: ${mlTopics}, Backend: ${backendTopics}, Core: ${coreTopics}, Aptitude: ${aptitudeTopics}
-- Most neglected tag: ${mostNeglected}
-
-Respond ONLY with raw JSON (no markdown, no preamble):
-{
-  "status_emoji": "one emoji that captures their overall status (e.g. 🔥 if doing well, ⚠️ if behind, 🚀 if great)",
-  "headline": "Short punchy 1-line status (max 8 words)",
-  "progress": "Current progress in 1-2 sentences. Use specific numbers. Is the completion rate on track given days elapsed?",
-  "on_track": "Are they ahead, on track, or falling behind their plan? Be blunt. What needs to happen to stay on schedule? 1-2 sentences.",
-  "weak_spot": "Which area/tag is being ignored and what's the risk? 1 sentence.",
-  "action": "The ONE most important thing to do today. Specific and direct."
-}`;
-
-    async function fetchInsight() {
-      try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${GROQ_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [{ role: 'user', content: prompt }],
-            max_tokens: 400,
-            temperature: 0.7,
-          }),
-        });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData?.error?.message || `Groq API error ${res.status}`);
-        }
-
-        const data = await res.json();
-        const raw = data.choices?.[0]?.message?.content || '';
-        const clean = raw.replace(/```json|```/gi, '').trim();
-        const parsed = JSON.parse(clean);
-        setInsight(parsed);
-      } catch (err) {
-        setError(err.message || 'Failed to load AI insights.');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchInsight();
-  }, [days]);
-
-  // ── Skeleton loader ──────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="bg-[#161b22] border border-[#21262d] rounded-lg p-4 animate-pulse">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-[10px] uppercase tracking-widest text-[#58a6ff] font-bold">AI Coach</span>
-          <span className="text-[10px] text-[#484f58]">· analyzing...</span>
-        </div>
-        <div className="h-3 bg-[#21262d] rounded w-1/2 mb-4" />
-        <div className="space-y-3">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-1.5">
-              <div className="h-2 bg-[#21262d] rounded w-1/3" />
-              <div className="h-2 bg-[#21262d] rounded w-full" />
-              <div className="h-2 bg-[#21262d] rounded w-4/5" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // ── Error state ──────────────────────────────────────────────────────────
-  if (error) {
-    return (
-      <div className="bg-[#161b22] border border-[#f7816633] rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] uppercase tracking-widest text-[#f78166] font-bold">AI Coach</span>
-        </div>
-        <p className="text-xs text-[#8b949e]">
-          Could not load insights: <span className="text-[#f78166]">{error}</span>
-        </p>
-        <p className="text-[10px] text-[#484f58] mt-1">
-          Make sure <code className="text-[#e3b341]">NEXT_PUBLIC_GROQ_API_KEY</code> is set in your <code>.env.local</code>.
-        </p>
-      </div>
-    );
-  }
-
-  if (!insight) return null;
-
-  // ── Insight card — always fully visible ──────────────────────────────────
-  return (
-    <div className="bg-[#161b22] border border-[#58a6ff33] rounded-lg overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-[#21262d]">
-        <span className="text-[10px] uppercase tracking-widest text-[#58a6ff] font-bold">Summary by AI</span>
-        <span className="text-base leading-none">{insight.status_emoji}</span>
-        <span className="text-xs font-semibold text-[#e6edf3] ml-1">{insight.headline}</span>
-      </div>
-
-      {/* 4 insight blocks — always shown */}
-      <div className="grid grid-cols-1 gap-px bg-[#21262d]">
-        <InsightBlock
-          icon="📊"
-          label="Progress"
-          text={insight.progress}
-          accent="text-[#8b949e]"
-        />
-        <InsightBlock
-          icon="📈"
-          label="On Track?"
-          text={insight.on_track}
-          accent="text-[#8b949e]"
-        />
-        <InsightBlock
-          icon="⚠️"
-          label="Weak Spot"
-          text={insight.weak_spot}
-          accent="text-[#e3b341]"
-        />
-        <InsightBlock
-          icon="✅"
-          label="Do This Now"
-          text={insight.action}
-          accent="text-[#3fb950]"
-        />
-      </div>
-    </div>
-  );
-}
-
-function InsightBlock({ icon, label, text, accent }) {
-  return (
-    <div className="bg-[#161b22] px-4 py-3 space-y-1">
-      <span className="text-[10px] uppercase tracking-widest text-[#484f58] flex items-center gap-1.5">
-        <span>{icon}</span>{label}
-      </span>
-      <p className={`text-xs leading-relaxed ${accent}`}>{text}</p>
-    </div>
-  );
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -311,7 +131,7 @@ export default function Home() {
     if (filter === 'core')     return d.topics.some(t => t.tag === 'core');
     if (filter === 'aptitude') return d.topics.some(t => t.tag === 'aptitude');
     if (filter === 'pending')  return d.topics.some(t => !t.done);
-      if (filter === 'today')    return d.date === today;
+    if (filter === 'today')    return d.date === today;
     if (filter === 'done')     return d.topics.length > 0 && d.topics.every(t => t.done);
     return true;
   });
@@ -375,45 +195,24 @@ export default function Home() {
           />
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-5 mt-5">
-          {/* Left column — 70% */}
-          <div className="w-full lg:w-[70%] space-y-2">
-            {filteredDays.map(day => (
-              <DayCard
-                key={day.id}
-                day={day}
-                isToday={day.date === today}
-                expanded={expandedDay === day.id}
-                onToggleExpand={() =>
-                  setExpandedDay(expandedDay === day.id ? null : day.id)
-                }
-                onAddTopic={addTopic}
-                onToggleTopic={toggleTopic}
-                onDeleteTopic={deleteTopic}
-                onEditTopic={editTopic}
-                onUpdateTag={updateTopicTag}
-                onAddNote={addNote}
-              />
-            ))}
-          </div>
-
-          {/* Right column — 30%, AI Coach */}
-          <div className="w-full lg:w-[30%]">
-            <div className="lg:sticky lg:top-6">
-              <AIInsightPanel
-                days={days}
-                totalTopics={totalTopics}
-                doneTopics={doneTopics}
-                dsaTopics={dsaTopics}
-                daTopics={daTopics}
-                mlTopics={mlTopics}
-                backendTopics={backendTopics}
-                coreTopics={coreTopics}
-                aptitudeTopics={aptitudeTopics}
-                daysPassed={daysPassed}
-              />
-            </div>
-          </div>
+        <div className="mt-5 space-y-2">
+          {filteredDays.map(day => (
+            <DayCard
+              key={day.id}
+              day={day}
+              isToday={day.date === today}
+              expanded={expandedDay === day.id}
+              onToggleExpand={() =>
+                setExpandedDay(expandedDay === day.id ? null : day.id)
+              }
+              onAddTopic={addTopic}
+              onToggleTopic={toggleTopic}
+              onDeleteTopic={deleteTopic}
+              onEditTopic={editTopic}
+              onUpdateTag={updateTopicTag}
+              onAddNote={addNote}
+            />
+          ))}
         </div>
       </div>
     </main>
