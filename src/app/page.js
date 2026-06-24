@@ -109,7 +109,7 @@ export default function Home() {
   const doneTopics     = days.reduce((a, d) => a + d.topics.filter(t => t.done).length, 0);
   const dsaTopics      = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'dsa').length, 0);
   const daTopics       = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'da').length, 0);
-  const mlTopics       = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'ml').length, 0);
+  const genaiTopics       = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'genai').length, 0);
   const backendTopics  = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'backend').length, 0);
   const coreTopics     = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'core').length, 0);
   const aptitudeTopics = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'aptitude').length, 0);
@@ -126,7 +126,7 @@ export default function Home() {
 
     if (filter === 'dsa')      return d.topics.some(t => t.tag === 'dsa');
     if (filter === 'da')       return d.topics.some(t => t.tag === 'da');
-    if (filter === 'ml')       return d.topics.some(t => t.tag === 'ml');
+    if (filter === 'genai')       return d.topics.some(t => t.tag === 'genai');
     if (filter === 'backend')  return d.topics.some(t => t.tag === 'backend');
     if (filter === 'core')     return d.topics.some(t => t.tag === 'core');
     if (filter === 'aptitude') return d.topics.some(t => t.tag === 'aptitude');
@@ -139,7 +139,7 @@ export default function Home() {
   const LEGEND = [
     { label: 'DSA',      color: '#f78166' },
     { label: 'DA',       color: '#d2a8ff' },
-    { label: 'ML',       color: '#79c0ff' },
+    { label: 'GenAI',       color: '#79c0ff' },
     { label: 'Backend',  color: '#56d364' },
     { label: 'Core',     color: '#e3b341' },
     { label: 'Aptitude', color: '#ff7b72' },
@@ -179,7 +179,7 @@ export default function Home() {
           done={doneTopics}
           dsa={dsaTopics}
           da={daTopics}
-          ml={mlTopics}
+          genai={genaiTopics}
           backend={backendTopics}
           core={coreTopics}
           aptitude={aptitudeTopics}

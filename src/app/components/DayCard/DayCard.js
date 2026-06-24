@@ -5,13 +5,13 @@ import { useState } from 'react';
 export const TAG_CONFIG = {
   dsa:      { label: 'DSA',     color: 'bg-[#f781661a] text-[#f78166] border-[#f7816633]' },
   da:       { label: 'Data Analyst', color: 'bg-[#d2a8ff1a] text-[#d2a8ff] border-[#d2a8ff33]' },
-  ml:       { label: 'ML',      color: 'bg-[#79c0ff1a] text-[#79c0ff] border-[#79c0ff33]' },
+  genai:       { label: 'Gen AI',      color: 'bg-[#79c0ff1a] text-[#79c0ff] border-[#79c0ff33]' },
   backend:  { label: 'Backend Web', color: 'bg-[#56d3641a] text-[#56d364] border-[#56d36433]' },
   core:     { label: 'Core',    color: 'bg-[#e3b3411a] text-[#e3b341] border-[#e3b34133]' },
   aptitude: { label: 'Aptitude', color: 'bg-[#ff7b721a] text-[#ff7b72] border-[#ff7b7233]' },
 };
 
-const TAG_ORDER = ['dsa', 'da', 'ml', 'backend', 'core', 'aptitude'];
+const TAG_ORDER = ['dsa', 'da', 'genai', 'backend', 'core', 'aptitude'];
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -24,7 +24,7 @@ function formatDate(dateStr) {
 const TAG_DOT_COLORS = {
   dsa:      'bg-[#f78166]',
   da:       'bg-[#d2a8ff]',
-  ml:       'bg-[#79c0ff]',
+  genai:       'bg-[#79c0ff]',
   backend:  'bg-[#56d364]',
   core:     'bg-[#e3b341]',
   aptitude: 'bg-[#ff7b72]',
