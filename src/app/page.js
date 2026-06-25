@@ -1,215 +1,217 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import DayCard from './components/DayCard/DayCard';
 import StatsBar from './components/StatsBar/StatsBar';
 import FilterBar from './components/FilterBar/FilterBar';
-import { getEditToken, setEditToken, clearEditToken, verifyEditToken } from '../lib/auth';
-
-const START_DATE = new Date('2026-06-14');
-const TOTAL_DAYS = 45;
-
-function generateDays() {
-  return Array.from({ length: TOTAL_DAYS }, (_, i) => {
-    const date = new Date(START_DATE);
-    date.setDate(START_DATE.getDate() + i);
-    return {
-      id: i + 1,
-      date: date.toISOString().split('T')[0],
-      topics: [],
-    };
-  });
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const [days, setDays] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [expandedDay, setExpandedDay] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Edit-lock state
-  const [isEditor, setIsEditor] = useState(false);
-  const [showUnlock, setShowUnlock] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [unlockError, setUnlockError] = useState('');
-  const [unlocking, setUnlocking] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // ── Load from server on mount ──────────────────────────────────────────
+  // Popup modal state (replaces browser alert())
+  const [popup, setPopup] = useState(null); // { title, message } | null
+
+  // Admin login modal state
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginInput, setLoginInput] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
+
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/progress');
-        const json = await res.json();
-        if (json.days && json.days.length > 0) {
-          setDays(json.days);
-        } else {
-          // First-ever load: seed with empty days. This will get saved
-          // once an editor makes a change (or you can save immediately
-          // below if you want it persisted right away).
-          setDays(generateDays());
-        }
-      } catch (err) {
-        console.error('Failed to load progress:', err);
-        setError('Could not load progress from the server.');
-        setDays(generateDays());
-      } finally {
-        setLoading(false);
-      }
-    })();
-
-    // Auto-expand today
-    const today = new Date().toISOString().split('T')[0];
-    const todayIdx = generateDays().findIndex(d => d.date === today);
-    if (todayIdx !== -1) setExpandedDay(todayIdx + 1);
-
-    // Restore edit token if present (we trust it optimistically; any
-    // write will fail server-side if it's actually wrong)
-    if (getEditToken()) setIsEditor(true);
+    const saved = localStorage.getItem('admin-password');
+    if (saved) {
+      setAdminPassword(saved);
+      setIsAdmin(true);
+    }
   }, []);
 
-  // ── Save to server (debounced-ish: fires per mutation) ────────────────
-  const saveDays = useCallback(async (nextDays) => {
-    const token = getEditToken();
-    if (!token) return; // not an editor, nothing to save
+  const openLoginModal = () => {
+    setLoginInput('');
+    setLoginError('');
+    setShowLoginModal(true);
+  };
 
-    setSaving(true);
+  const submitLogin = async () => {
+    if (!loginInput) {
+      setLoginError('Please enter a password.');
+      return;
+    }
+    setLoginError('');
+    setLoggingIn(true);
     try {
-      const res = await fetch('/api/progress', {
+      const res = await fetch('/api/admin/verify', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-edit-password': token,
-        },
-        body: JSON.stringify({ days: nextDays }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: loginInput }),
       });
-      if (res.status === 401) {
-        // token went stale/wrong — lock editing back down
-        clearEditToken();
-        setIsEditor(false);
-        setError('Edit session expired. Please unlock again.');
-      } else if (!res.ok) {
-        setError('Failed to save — your last change may not have persisted.');
-      } else {
-        setError(null);
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        setLoginError('Incorrect password. Please try again.');
+        setLoggingIn(false);
+        return;
       }
+      localStorage.setItem('admin-password', loginInput);
+      setAdminPassword(loginInput);
+      setIsAdmin(true);
+      setShowLoginModal(false);
+      setLoggingIn(false);
+      setPopup({ title: 'Logged in', message: 'Admin mode enabled. You can now add, edit, and complete tasks.' });
     } catch (err) {
-      console.error('Save failed:', err);
-      setError('Failed to save — check your connection.');
-    } finally {
-      setSaving(false);
+      setLoginError('Something went wrong. Please try again.');
+      setLoggingIn(false);
     }
+  };
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem('admin-password');
+    setAdminPassword('');
+    setIsAdmin(false);
+    setPopup({ title: 'Logged out', message: 'You are now in view-only mode.' });
+  };
+
+  useEffect(() => {
+    fetch('/api/days')
+      .then(r => r.json())
+      .then(data => {
+        setDays(data);
+        setLoading(false);
+        const today = new Date().toISOString().split('T')[0];
+        const todayDay = data.find(d => d.date === today);
+        if (todayDay) setExpandedDay(todayDay.id);
+      });
   }, []);
 
-  // Helper: update local state immediately, then persist
-  const mutate = useCallback((updater) => {
-    setDays(prev => {
-      const next = updater(prev);
-      saveDays(next);
-      return next;
-    });
-  }, [saveDays]);
+  const authHeaders = () => ({
+    'Content-Type': 'application/json',
+    'x-admin-password': adminPassword,
+  });
 
-  // ── Mutation handlers (all gated implicitly — buttons are hidden/disabled
-  //    for non-editors in the UI, but we double-check here too) ──────────
-  const addTopic = (dayId, topic, tag) => {
-    if (!isEditor) return;
-    mutate(prev =>
-      prev.map(d =>
-        d.id === dayId
-          ? { ...d, topics: [...d.topics, { id: Date.now(), text: topic, done: false, tag: tag || 'dsa' }] }
-          : d
-      )
-    );
-  };
-
-  const toggleTopic = (dayId, topicId) => {
-    if (!isEditor) return;
-    mutate(prev =>
-      prev.map(d =>
-        d.id === dayId
-          ? { ...d, topics: d.topics.map(t => t.id === topicId ? { ...t, done: !t.done } : t) }
-          : d
-      )
-    );
-  };
-
-  const deleteTopic = (dayId, topicId) => {
-    if (!isEditor) return;
-    mutate(prev =>
-      prev.map(d =>
-        d.id === dayId
-          ? { ...d, topics: d.topics.filter(t => t.id !== topicId) }
-          : d
-      )
-    );
-  };
-
-  const editTopic = (dayId, topicId, newText) => {
-    if (!isEditor) return;
-    mutate(prev =>
-      prev.map(d =>
-        d.id === dayId
-          ? { ...d, topics: d.topics.map(t => t.id === topicId ? { ...t, text: newText } : t) }
-          : d
-      )
-    );
-  };
-
-  const updateTopicTag = (dayId, topicId, tag) => {
-    if (!isEditor) return;
-    mutate(prev =>
-      prev.map(d =>
-        d.id === dayId
-          ? { ...d, topics: d.topics.map(t => t.id === topicId ? { ...t, tag } : t) }
-          : d
-      )
-    );
-  };
-
-  const addNote = (dayId, note) => {
-    if (!isEditor) return;
-    mutate(prev => prev.map(d => d.id === dayId ? { ...d, note } : d));
-  };
-
-  // ── Unlock flow ─────────────────────────────────────────────────────
-  const handleUnlock = async () => {
-    if (!passwordInput.trim()) return;
-    setUnlocking(true);
-    setUnlockError('');
-    try {
-      const ok = await verifyEditToken(passwordInput.trim(), days);
-      if (ok) {
-        setEditToken(passwordInput.trim());
-        setIsEditor(true);
-        setShowUnlock(false);
-        setPasswordInput('');
-      } else {
-        setUnlockError('Incorrect password.');
-      }
-    } catch (err) {
-      setUnlockError('Could not reach server. Try again.');
-    } finally {
-      setUnlocking(false);
+  const handleUnauthorized = () => {
+    // If we thought we were admin but got rejected, the saved password is wrong/stale.
+    if (isAdmin) {
+      localStorage.removeItem('admin-password');
+      setAdminPassword('');
+      setIsAdmin(false);
     }
+    setPopup({
+      title: 'Admin login required',
+      message: 'Only the admin can add or update tasks. Please log in with the admin password to make changes.',
+    });
   };
 
-  const handleLock = () => {
-    clearEditToken();
-    setIsEditor(false);
+  const addTopic = async (dayId, text, tag) => {
+    const res = await fetch('/api/topics', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ dayId, text, tag }),
+    });
+    if (res.status === 401) return handleUnauthorized();
+    const topic = await res.json();
+    setDays(prev =>
+      prev.map(d => (d.id === dayId ? { ...d, topics: [...d.topics, topic] } : d))
+    );
   };
+
+  const toggleTopic = async (dayId, topicId) => {
+    const day = days.find(d => d.id === dayId);
+    const topic = day.topics.find(t => t.id === topicId);
+    const res = await fetch(`/api/topics/${topicId}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ done: !topic.done }),
+    });
+    if (res.status === 401) return handleUnauthorized();
+    const updated = await res.json();
+
+    setDays(prev =>
+      prev.map(d =>
+        d.id === dayId
+          ? { ...d, topics: d.topics.map(t => (t.id === topicId ? updated : t)) }
+          : d
+      )
+    );
+  };
+
+  const deleteTopic = async (dayId, topicId) => {
+    const res = await fetch(`/api/topics/${topicId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (res.status === 401) return handleUnauthorized();
+    setDays(prev =>
+      prev.map(d =>
+        d.id === dayId ? { ...d, topics: d.topics.filter(t => t.id !== topicId) } : d
+      )
+    );
+  };
+
+  const editTopic = async (dayId, topicId, newText) => {
+    const res = await fetch(`/api/topics/${topicId}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ text: newText }),
+    });
+    if (res.status === 401) return handleUnauthorized();
+    const updated = await res.json();
+
+    setDays(prev =>
+      prev.map(d =>
+        d.id === dayId
+          ? { ...d, topics: d.topics.map(t => (t.id === topicId ? updated : t)) }
+          : d
+      )
+    );
+  };
+
+  const updateTopicTag = async (dayId, topicId, tag) => {
+    const res = await fetch(`/api/topics/${topicId}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ tag }),
+    });
+    if (res.status === 401) return handleUnauthorized();
+    const updated = await res.json();
+
+    setDays(prev =>
+      prev.map(d =>
+        d.id === dayId
+          ? { ...d, topics: d.topics.map(t => (t.id === topicId ? updated : t)) }
+          : d
+      )
+    );
+  };
+
+  const addNote = async (dayId, note) => {
+    const res = await fetch(`/api/days/${dayId}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ note }),
+    });
+    if (res.status === 401) return handleUnauthorized();
+    setDays(prev => prev.map(d => (d.id === dayId ? { ...d, note } : d)));
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#0d1117] text-[#8b949e] flex items-center justify-center font-mono text-sm">
+        Loading...
+      </main>
+    );
+  }
 
   // Stats
   const totalTopics    = days.reduce((a, d) => a + d.topics.length, 0);
   const doneTopics     = days.reduce((a, d) => a + d.topics.filter(t => t.done).length, 0);
   const dsaTopics      = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'dsa').length, 0);
   const daTopics       = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'da').length, 0);
-  const genaiTopics       = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'genai').length, 0);
+  const genaiTopics    = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'genai').length, 0);
   const backendTopics  = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'backend').length, 0);
   const coreTopics     = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'core').length, 0);
   const aptitudeTopics = days.reduce((a, d) => a + d.topics.filter(t => t.tag === 'aptitude').length, 0);
@@ -221,155 +223,74 @@ export default function Home() {
     const matchSearch = search
       ? d.topics.some(t => t.text.toLowerCase().includes(search.toLowerCase()))
       : true;
-
     if (!matchSearch) return false;
-
-    if (filter === 'dsa')      return d.topics.some(t => t.tag === 'dsa');
-    if (filter === 'da')       return d.topics.some(t => t.tag === 'da');
-    if (filter === 'genai')       return d.topics.some(t => t.tag === 'genai');
-    if (filter === 'backend')  return d.topics.some(t => t.tag === 'backend');
-    if (filter === 'core')     return d.topics.some(t => t.tag === 'core');
-    if (filter === 'aptitude') return d.topics.some(t => t.tag === 'aptitude');
-    if (filter === 'pending')  return d.topics.some(t => !t.done);
-    if (filter === 'today')    return d.date === today;
-    if (filter === 'done')     return d.topics.length > 0 && d.topics.every(t => t.done);
+    if (filter === 'pending') return d.topics.some(t => !t.done);
+    if (filter === 'today')   return d.date === today;
+    if (filter === 'done')    return d.topics.length > 0 && d.topics.every(t => t.done);
     return true;
   });
 
   const LEGEND = [
-    { label: 'DSA',      color: '#f78166' },
-    { label: 'DA',       color: '#d2a8ff' },
-    { label: 'GenAI',       color: '#79c0ff' },
-    { label: 'Backend',  color: '#56d364' },
-    { label: 'Core',     color: '#e3b341' },
+    { label: 'DSA', color: '#f78166' },
+    { label: 'DA', color: '#d2a8ff' },
+    { label: 'GenAI', color: '#79c0ff' },
+    { label: 'Backend', color: '#56d364' },
+    { label: 'Core', color: '#e3b341' },
     { label: 'Aptitude', color: '#ff7b72' },
   ];
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-[#0d1117] text-[#e6edf3] font-mono flex items-center justify-center">
-        <p className="text-sm text-[#8b949e]">Loading progress…</p>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-[#0d1117] text-[#e6edf3] font-mono">
-      {/* Header */}
       <div className="border-b border-[#21262d] px-4 py-4 sm:px-8">
         <div className="max-w-6xl mx-auto flex items-start justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-[#58a6ff]">
-             Road to Offer
-            </h1>
+            <h1 className="text-xl font-bold tracking-tight text-[#58a6ff]">Road to Offer</h1>
             <p className="text-xs text-[#8b949e] mt-0.5">
               14 Jun → 28 Jul 2026 &nbsp;·&nbsp; 45 days &nbsp;·&nbsp; Day {Math.min(daysPassed + 1, 45)} of 45
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             {LEGEND.map(({ label, color }) => (
-              <span
-                key={label}
-                className="bg-[#161b22] border border-[#21262d] px-2 py-1 rounded text-xs text-[#8b949e] flex items-center gap-1.5"
-              >
+              <span key={label} className="bg-[#161b22] border border-[#21262d] px-2 py-1 rounded text-xs text-[#8b949e] flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
                 {label}
               </span>
             ))}
-
-            {/* Edit lock/unlock control */}
-            {isEditor ? (
+            {isAdmin ? (
               <button
-                onClick={handleLock}
-                className="text-xs px-2 py-1 rounded border border-[#3fb950] text-[#3fb950] hover:bg-[#3fb95015] transition-colors flex items-center gap-1"
-                title="You can edit. Click to lock."
+                onClick={handleAdminLogout}
+                className="bg-[#23863622] border border-[#238636] px-2 py-1 rounded text-xs text-[#3fb950] hover:bg-[#23863633] transition-colors"
+                title="Click to log out of admin mode"
               >
-                🔓 Editing
+                ● Admin
               </button>
             ) : (
               <button
-                onClick={() => setShowUnlock(true)}
-                className="text-xs px-2 py-1 rounded border border-[#21262d] text-[#8b949e] hover:text-[#58a6ff] hover:border-[#58a6ff] transition-colors flex items-center gap-1"
-                title="Unlock editing"
+                onClick={openLoginModal}
+                className="bg-[#161b22] border border-[#21262d] px-2 py-1 rounded text-xs text-[#8b949e] hover:text-[#e6edf3] hover:border-[#30363d] transition-colors"
               >
-                🔒 View only
+                Admin Login
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Unlock modal */}
-      {showUnlock && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
-          onClick={() => setShowUnlock(false)}
-        >
-          <div
-            className="bg-[#161b22] border border-[#30363d] rounded-lg p-5 w-full max-w-sm"
-            onClick={e => e.stopPropagation()}
-          >
-            <h2 className="text-sm font-semibold text-[#e6edf3] mb-3">Unlock editing</h2>
-            <input
-              type="password"
-              autoFocus
-              value={passwordInput}
-              onChange={e => setPasswordInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleUnlock()}
-              placeholder="Edit password"
-              className="w-full bg-[#0d1117] border border-[#21262d] rounded px-3 py-2 text-sm text-[#e6edf3] placeholder-[#484f58] focus:outline-none focus:border-[#58a6ff]"
-            />
-            {unlockError && <p className="text-xs text-[#f78166] mt-2">{unlockError}</p>}
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={handleUnlock}
-                disabled={unlocking}
-                className="flex-1 bg-[#238636] hover:bg-[#2ea043] disabled:opacity-50 text-white text-sm rounded px-3 py-2 transition-colors"
-              >
-                {unlocking ? 'Checking…' : 'Unlock'}
-              </button>
-              <button
-                onClick={() => setShowUnlock(false)}
-                className="flex-1 bg-[#21262d] hover:bg-[#30363d] text-[#e6edf3] text-sm rounded px-3 py-2 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6">
-        {error && (
-          <div className="mb-4 text-xs text-[#f78166] bg-[#f7816615] border border-[#f7816633] rounded px-3 py-2">
-            {error}
+        <StatsBar
+          total={totalTopics} done={doneTopics} dsa={dsaTopics} da={daTopics}
+          genai={genaiTopics} backend={backendTopics} core={coreTopics}
+          aptitude={aptitudeTopics} daysPassed={daysPassed}
+        />
+        <div className="mt-5">
+          <FilterBar filter={filter} setFilter={setFilter} search={search} setSearch={setSearch} />
+        </div>
+
+        {!isAdmin && (
+          <div className="mt-4 bg-[#161b2280] border border-[#21262d] rounded-lg px-4 py-2 text-xs text-[#8b949e]">
+            👀 You're viewing in read-only mode. Only the admin can add or update tasks.
           </div>
         )}
-        {saving && (
-          <div className="mb-4 text-xs text-[#8b949e]">Saving…</div>
-        )}
-
-        {/* Stats bar — full width on top */}
-        <StatsBar
-          total={totalTopics}
-          done={doneTopics}
-          dsa={dsaTopics}
-          da={daTopics}
-          genai={genaiTopics}
-          backend={backendTopics}
-          core={coreTopics}
-          aptitude={aptitudeTopics}
-          daysPassed={daysPassed}
-        />
-
-        <div className="mt-5">
-          <FilterBar
-            filter={filter}
-            setFilter={setFilter}
-            search={search}
-            setSearch={setSearch}
-          />
-        </div>
 
         <div className="mt-5 space-y-2">
           {filteredDays.map(day => (
@@ -377,11 +298,9 @@ export default function Home() {
               key={day.id}
               day={day}
               isToday={day.date === today}
-              isEditor={isEditor}
               expanded={expandedDay === day.id}
-              onToggleExpand={() =>
-                setExpandedDay(expandedDay === day.id ? null : day.id)
-              }
+              isAdmin={isAdmin}
+              onToggleExpand={() => setExpandedDay(expandedDay === day.id ? null : day.id)}
               onAddTopic={addTopic}
               onToggleTopic={toggleTopic}
               onDeleteTopic={deleteTopic}
@@ -392,6 +311,78 @@ export default function Home() {
           ))}
         </div>
       </div>
+
+      {/* Admin Login Modal */}
+      {showLoginModal && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+          onClick={() => setShowLoginModal(false)}
+        >
+          <div
+            className="bg-[#161b22] border border-[#30363d] rounded-lg p-5 w-full max-w-sm shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-sm font-bold text-[#e6edf3] mb-1">Admin Login</h2>
+            <p className="text-xs text-[#8b949e] mb-3">Enter the admin password to enable editing.</p>
+            <input
+              type="password"
+              autoFocus
+              value={loginInput}
+              onChange={e => {
+                setLoginInput(e.target.value);
+                if (loginError) setLoginError('');
+              }}
+              onKeyDown={e => e.key === 'Enter' && submitLogin()}
+              placeholder="Password"
+              className={`w-full bg-[#0d1117] border rounded px-3 py-2 text-sm text-[#e6edf3] placeholder-[#484f58] focus:outline-none mb-2 ${
+                loginError ? 'border-[#f78166]' : 'border-[#30363d] focus:border-[#58a6ff]'
+              }`}
+            />
+            {loginError && (
+              <p className="text-xs text-[#f78166] mb-3">⚠ {loginError}</p>
+            )}
+            <div className={`flex justify-end gap-2 ${loginError ? '' : 'mt-3'}`}>
+              <button
+                onClick={() => setShowLoginModal(false)}
+                className="text-xs px-3 py-1.5 rounded border border-[#21262d] text-[#8b949e] hover:text-[#e6edf3] hover:border-[#30363d] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitLogin}
+                disabled={loggingIn}
+                className="text-xs px-3 py-1.5 rounded bg-[#238636] hover:bg-[#2ea043] disabled:opacity-50 text-white transition-colors"
+              >
+                {loggingIn ? 'Checking...' : 'Login'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generic Popup Modal (replaces alert()) */}
+      {popup && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+          onClick={() => setPopup(null)}
+        >
+          <div
+            className="bg-[#161b22] border border-[#30363d] rounded-lg p-5 w-full max-w-sm shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-sm font-bold text-[#e6edf3] mb-1">{popup.title}</h2>
+            <p className="text-xs text-[#8b949e] mb-4">{popup.message}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setPopup(null)}
+                className="text-xs px-3 py-1.5 rounded bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] text-[#e6edf3] transition-colors"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

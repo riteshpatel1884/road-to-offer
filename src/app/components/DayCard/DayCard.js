@@ -33,8 +33,8 @@ const TAG_DOT_COLORS = {
 export default function DayCard({
   day,
   isToday,
-  isEditor = false,
   expanded,
+  isAdmin,
   onToggleExpand,
   onAddTopic,
   onToggleTopic,
@@ -55,7 +55,6 @@ export default function DayCard({
   const allDone = totalTopics > 0 && doneTopics === totalTopics;
 
   const handleAdd = () => {
-    if (!isEditor) return;
     const trimmed = newTopic.trim();
     if (!trimmed) return;
     onAddTopic(day.id, trimmed, newTag);
@@ -63,7 +62,6 @@ export default function DayCard({
   };
 
   const handleNoteBlur = () => {
-    if (!isEditor) return;
     onAddNote(day.id, noteText);
     setEditingNote(false);
   };
@@ -74,13 +72,11 @@ export default function DayCard({
   };
 
   const startEditTopic = (topic) => {
-    if (!isEditor) return;
     setEditingTopicId(topic.id);
     setEditTopicText(topic.text);
   };
 
   const saveEditTopic = (topicId) => {
-    if (!isEditor) return;
     const trimmed = editTopicText.trim();
     if (trimmed) {
       onEditTopic(day.id, topicId, trimmed);
@@ -171,9 +167,7 @@ export default function DayCard({
           {/* Topics list */}
           <div className="space-y-1.5">
             {day.topics.length === 0 && (
-              <p className="text-xs text-[#484f58] italic">
-                {isEditor ? 'No topics yet. Add one below.' : 'No topics yet.'}
-              </p>
+              <p className="text-xs text-[#484f58] italic">No topics yet.</p>
             )}
             {day.topics.map(topic => (
               <div
@@ -184,19 +178,19 @@ export default function DayCard({
               >
                 {/* Checkbox */}
                 <button
-                  onClick={() => isEditor && onToggleTopic(day.id, topic.id)}
-                  disabled={!isEditor}
+                  onClick={() => isAdmin && onToggleTopic(day.id, topic.id)}
+                  disabled={!isAdmin}
                   className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
                     topic.done
                       ? 'bg-[#238636] border-[#238636]'
-                      : 'border-[#30363d] hover:border-[#58a6ff]'
-                  } ${!isEditor ? 'cursor-default hover:border-[#30363d]' : ''}`}
+                      : 'border-[#30363d]'
+                  } ${isAdmin ? 'hover:border-[#58a6ff] cursor-pointer' : 'cursor-default opacity-80'}`}
                 >
                   {topic.done && <span className="text-white text-[10px]">✓</span>}
                 </button>
 
                 {/* Text / Edit input */}
-                {editingTopicId === topic.id ? (
+                {isAdmin && editingTopicId === topic.id ? (
                   <input
                     type="text"
                     autoFocus
@@ -211,8 +205,8 @@ export default function DayCard({
                   />
                 ) : (
                   <span
-                    onDoubleClick={() => startEditTopic(topic)}
-                    className={`flex-1 text-sm transition-colors ${isEditor ? 'cursor-text' : ''} ${
+                    onDoubleClick={() => isAdmin && startEditTopic(topic)}
+                    className={`flex-1 text-sm transition-colors ${isAdmin ? 'cursor-text' : ''} ${
                       topic.done ? 'text-[#8b949e]' : 'text-[#e6edf3]'
                     }`}
                   >
@@ -220,8 +214,8 @@ export default function DayCard({
                   </span>
                 )}
 
-                {/* Edit button */}
-                {isEditor && editingTopicId !== topic.id && (
+                {/* Edit button — admin only */}
+                {isAdmin && editingTopicId !== topic.id && (
                   <button
                     onClick={() => startEditTopic(topic)}
                     className="text-[#484f58] hover:text-[#58a6ff] text-xs opacity-0 group-hover:opacity-100 transition-opacity"
@@ -231,18 +225,25 @@ export default function DayCard({
                   </button>
                 )}
 
-                {/* Tag cycler */}
-                <button
-                  onClick={() => isEditor && onUpdateTag(day.id, topic.id, cycleTag(topic.tag))}
-                  disabled={!isEditor}
-                  className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${TAG_CONFIG[topic.tag].color} ${!isEditor ? 'cursor-default' : ''}`}
-                  title={isEditor ? 'Click to cycle tag' : undefined}
-                >
-                  {TAG_CONFIG[topic.tag].label}
-                </button>
+                {/* Tag — clickable cycle for admin, static badge for viewers */}
+                {isAdmin ? (
+                  <button
+                    onClick={() => onUpdateTag(day.id, topic.id, cycleTag(topic.tag))}
+                    className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${TAG_CONFIG[topic.tag].color}`}
+                    title="Click to cycle tag"
+                  >
+                    {TAG_CONFIG[topic.tag].label}
+                  </button>
+                ) : (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${TAG_CONFIG[topic.tag].color}`}
+                  >
+                    {TAG_CONFIG[topic.tag].label}
+                  </span>
+                )}
 
-                {/* Delete */}
-                {isEditor && (
+                {/* Delete — admin only */}
+                {isAdmin && (
                   <button
                     onClick={() => onDeleteTopic(day.id, topic.id)}
                     className="text-[#484f58] hover:text-[#f78166] text-xs opacity-0 group-hover:opacity-100 transition-opacity"
@@ -254,8 +255,8 @@ export default function DayCard({
             ))}
           </div>
 
-          {/* Add topic — editors only */}
-          {isEditor && (
+          {/* Add topic — admin only */}
+          {isAdmin && (
             <div className="flex gap-2">
               <select
                 value={newTag}
@@ -285,30 +286,33 @@ export default function DayCard({
 
           {/* Note */}
           <div>
-            {editingNote && isEditor ? (
-              <textarea
-                autoFocus
-                value={noteText}
-                onChange={e => setNoteText(e.target.value)}
-                onBlur={handleNoteBlur}
-                placeholder="Day notes, links, or reflections..."
-                rows={2}
-                className="w-full bg-[#161b22] border border-[#21262d] rounded px-3 py-2 text-xs text-[#e6edf3] placeholder-[#484f58] focus:outline-none focus:border-[#58a6ff] transition-colors resize-none"
-              />
+            {isAdmin ? (
+              editingNote ? (
+                <textarea
+                  autoFocus
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  onBlur={handleNoteBlur}
+                  placeholder="Day notes, links, or reflections..."
+                  rows={2}
+                  className="w-full bg-[#161b22] border border-[#21262d] rounded px-3 py-2 text-xs text-[#e6edf3] placeholder-[#484f58] focus:outline-none focus:border-[#58a6ff] transition-colors resize-none"
+                />
+              ) : (
+                <button
+                  onClick={() => setEditingNote(true)}
+                  className="text-xs text-[#484f58] hover:text-[#8b949e] transition-colors text-left w-full"
+                >
+                  {day.note ? (
+                    <span className="text-[#8b949e]">{day.note}</span>
+                  ) : (
+                    '+ Add note'
+                  )}
+                </button>
+              )
             ) : (
-              <button
-                onClick={() => isEditor && setEditingNote(true)}
-                disabled={!isEditor}
-                className={`text-xs transition-colors text-left w-full ${isEditor ? 'text-[#484f58] hover:text-[#8b949e]' : 'text-[#484f58] cursor-default'}`}
-              >
-                {day.note ? (
-                  <span className="text-[#8b949e]">{day.note}</span>
-                ) : isEditor ? (
-                  '+ Add note'
-                ) : (
-                  ''
-                )}
-              </button>
+              day.note && (
+                <p className="text-xs text-[#8b949e]">{day.note}</p>
+              )
             )}
           </div>
         </div>

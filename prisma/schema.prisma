@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Day {
+  id     Int     @id
+  date   String  @unique
+  note   String? @default("")
+  topics Topic[]
+}
+
+model Topic {
+  id      Int     @id @default(autoincrement())
+  text    String
+  done    Boolean @default(false)
+  tag     String  @default("dsa")
+  dayId   Int
+  day     Day     @relation(fields: [dayId], references: [id], onDelete: Cascade)
+}
