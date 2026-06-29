@@ -17,8 +17,8 @@ export default function FilterBar({ filter, setFilter, search, setSearch }) {
             onClick={() => setFilter(f.id)}
             className={`text-xs px-3 py-1.5 rounded border transition-colors ${
               filter === f.id
-                ? 'bg-[#58a6ff] border-[#58a6ff] text-[#0d1117]'
-                : 'bg-[#161b22] border-[#21262d] text-[#8b949e] hover:text-[#e6edf3] hover:border-[#30363d]'
+                ? 'bg-[var(--accent-blue)] border-[var(--accent-blue)] text-white'
+                : 'bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)]'
             }`}
           >
             {f.label}
